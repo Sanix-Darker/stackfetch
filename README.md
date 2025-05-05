@@ -1,6 +1,6 @@
 ## STACKFETCH
 
-> Heavily inspired by how neofetch works in principe.
+> Heavily inspired by how [neofetch](https://github.com/dylanaraps/neofetch) works in principle, but for your stack/language/....
 
 ![screenshot](./screenshot.png)
 
@@ -23,7 +23,7 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 ```bash
 go install github.com/sanix-darker/stackfetch/cmd/stackfetch@latest  # source build
 # — or —
-wget https://github.com/sanix-darker/stackfetch/releases/download/vX.Y.Z/stackfetch-linux-amd64
+wget https://github.com/sanix-darker/stackfetch/releases/download/latest/stackfetch-linux-amd64
 chmod +x stackfetch-* && mv stackfetch-* /usr/local/bin/stackfetch
 ```
 
@@ -35,6 +35,10 @@ stackfetch node python docker      # add Node, Python, Docker info
 stackfetch mean lamp --json        # JSON report for MEAN & LAMP stacks
 ```
 
-### CONTRIBUTION
+### CONTRIBUTORS
 
-- [sanixdk](https://github.com/sanix-darker).
+- [sanixdk](https://github.com/sanix-darker)
+
+### LICENSE
+
+**MIT**

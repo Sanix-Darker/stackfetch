@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'        # e.g. v1.3.0 → also updates the "latest" tag
 
 env:
   CGO_ENABLED: 0
@@ -23,16 +23,28 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Build
+      - name: Build binary
         shell: bash
         run: |
-          GOOS=$(echo "${{ matrix.os }}" | sed -e 's/-latest//')
+          GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
           GOARCH=${{ matrix.arch }}
           EXT=""
           [[ $GOOS == "windows" ]] && EXT=".exe"
           go build -ldflags "-s -w" -o stackfetch-${GOOS}-${GOARCH}${EXT} ./cmd/stackfetch
 
-      - name: Upload
+      - name: Upload (version)
         uses: softprops/action-gh-release@v1
         with:
+          files: stackfetch-*
+          generate_release_notes: true
+
+      # NOTE: Keep an always‑fresh "latest" release in sync
+      - name: Upload (latest alias)
+        if: github.repository == vars.REPO
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: Latest
+          body: "Mirror of ${{ github.ref_name }}"
+          overwrite: true             # just to replace existing assets if they clash
           files: stackfetch-*
