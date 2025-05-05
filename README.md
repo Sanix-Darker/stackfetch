@@ -7,7 +7,7 @@
 Ever got an issue from someone you can't reproduce on your side ?
 But then asking to run a bunch of command line to get like, the version of his cli/package-manager/system environment, processor... ?
 
-Well now, you're going to ask to run only one thing and get everything at once.
+Yes, me too.
 
 Meet stackfetch, with a provided programming language or just a stack, you are going to have all informations you want to help debuguing.
 
