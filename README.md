@@ -7,7 +7,7 @@
 Ever got an issue from someone you can't reproduce on your side ?
 But then asking to run a bunch of command line to get like, the version of his cli/package-manager/system environment, processor... ?
 
-Well now, you're going to ask to run only one thing and get everything at once.
+Yes, me too.
 
 Meet stackfetch, with a provided programming language or just a stack, you are going to have all informations you want to help debuguing.
 
@@ -25,8 +25,8 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 ```bash
 go install github.com/sanix-darker/stackfetch/cmd/stackfetch@latest  # source build
 # — or —
-wget https://github.com/sanix-darker/stackfetch/releases/download/latest/stackfetch-linux-amd64
-chmod +x stackfetch-* && mv stackfetch-* /usr/local/bin/stackfetch
+wget https://github.com/Sanix-Darker/stackfetch/releases/download/v0.0.2/stackfetch-ubuntu-amd64
+sudo chmod +x stackfetch-* && sudo mv stackfetch-* /usr/local/bin/stackfetch
 ```
 
 ### USAGE
