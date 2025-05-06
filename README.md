@@ -1,6 +1,6 @@
 ## STACKFETCH
 
-> Heavily inspired by how [neofetch](https://github.com/dylanaraps/neofetch) works in principle, but for your stack/language/....
+> Heavily inspired by how [neofetch](https://github.com/dylanaraps/neofetch) works in principle, but for your stack/language/services....
 
 ![screenshot](./screenshot.png)
 
@@ -11,7 +11,7 @@ Yes, me too.
 
 Meet stackfetch, with a provided programming language or just a stack, you are going to have all informations you want to help debuguing.
 
-## Features
+## FEATURES
 
 - **Cross‑platform**: Linux, macOS, Windows (amd64 & arm64) with graceful fall‑backs for BSD and WSL.
 - **Structured output**: choose plain text or `--json` for CI pipelines and issue templates.
@@ -19,6 +19,7 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 - **Shell completion**: `stackfetch completion bash|zsh|fish|powershell` for instant CLI hints.
 - **Guess Mode**: `Automatically guess the stack of the current directory project.`
     `stackfetch guess # or just : stackfetch ?`
+- **Services status:** Checks for running services from which the stack depends on.
 
 ### DEV INSTALL
 
@@ -29,7 +30,7 @@ wget https://github.com/Sanix-Darker/stackfetch/releases/download/v0.0.2/stackfe
 sudo chmod +x stackfetch-* && sudo mv stackfetch-* /usr/local/bin/stackfetch
 ```
 
-### USAGE
+### HOW TO USE
 
 ```bash
 stackfetch                         # system only (BLAZINGLY fast)
