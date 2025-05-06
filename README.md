@@ -21,16 +21,39 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
     `stackfetch guess # or just : stackfetch ?`
 - **Services status:** Checks for running services from which the stack depends on.
 
+## HOW TO INSTALL
+
+### LINUX (DEBIAN/UBUNTU)
+
+```bash
+echo "deb [trusted=yes] https://github.com/sanix-darker/stackfetch/releases/latest/download/ ./" | sudo tee /etc/apt/sources.list.d/stackfetch.list
+
+sudo apt update && sudo apt install stackfetch
+```
+
+### LINUX (ARCH)
+
+```bash
+yay -S stackfetch  # or paru
+```
+
 ### DEV INSTALL
 
 ```bash
 go install github.com/sanix-darker/stackfetch/cmd/stackfetch@latest  # source build
-# — or —
+# — or — (depending on the OS you're using)
 wget https://github.com/Sanix-Darker/stackfetch/releases/download/v0.0.2/stackfetch-ubuntu-amd64
 sudo chmod +x stackfetch-* && sudo mv stackfetch-* /usr/local/bin/stackfetch
 ```
 
-### HOW TO USE
+### WINDOWS
+
+```bash
+scoop bucket add stackfetch https://github.com/yourname/scoop-bucket
+scoop install stackfetch
+```
+
+## HOW TO USE
 
 ```bash
 stackfetch                         # system only (BLAZINGLY fast)
@@ -57,10 +80,10 @@ Go Version: go version go1.20 linux/amd64
 Module file: /home/dk/github/stackfetch/go.mod
 ```
 
-### CONTRIBUTORS
+## CONTRIBUTORS
 
 - [sanixdk](https://github.com/sanix-darker)
 
-### LICENSE
+## LICENSE
 
-**MIT**
+**[MIT](./LICENSE)**

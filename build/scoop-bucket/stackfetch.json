@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/sanix-darker/stackfetch/releases/download/v0.0.4/stackfetch-windows-amd64.zip",
+      "hash": "auto"
+    }
+  },
+  "bin": "stackfetch.exe"
+}
