@@ -86,4 +86,4 @@ Module file: /home/dk/github/stackfetch/go.mod
 
 ## LICENSE
 
-**MIT**
+**[MIT](./LICENSE)**
