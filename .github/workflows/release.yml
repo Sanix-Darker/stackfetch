@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*'  # e.g. v0.0.3
+      - 'v*'  # e.g. v0.0.6
 
 permissions:
   contents: write
@@ -11,7 +11,7 @@ permissions:
 
 env:
   CGO_ENABLED: 0
-  VERSION: ${{ github.ref_name }}  # e.g. "v0.0.3"
+  VERSION: ${{ github.ref_name }}  # e.g. "v0.0.6"
 
 jobs:
   build:
@@ -30,9 +30,12 @@ jobs:
           - os: windows-latest
             pkg_os: windows
             pkg_type: zip
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -45,51 +48,51 @@ jobs:
           GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
           GOARCH=${{ matrix.arch }}
           EXT=""
-          [[ $GOOS == "windows" ]] && EXT=".exe"
-          OUTPUT="stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}${EXT}"
-          go build -ldflags "-s -w -X main.version=${{ env.VERSION }}" -o $OUTPUT ./cmd/stackfetch
+          [[ "$GOOS" == "windows" ]] && EXT=".exe"
+          OUTPUT="stackfetch-${{ matrix.pkg_os }}-${{ GOARCH }}${EXT}"
+          go build -ldflags "-s -w -X main.version=${{ env.VERSION }}" \
+            -o "$OUTPUT" ./cmd/stackfetch
           echo "OUTPUT_FILE=$OUTPUT" >> $GITHUB_ENV
 
-      - name: Create Linux .deb Package
-        if: matrix.os == 'ubuntu-latest'
+      - name: Create Package
+        shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y ruby-dev rubygems
-          sudo gem install fpm
-          fpm -s dir -t deb -n stackfetch -v ${VERSION#v} \
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update && sudo apt-get install -y ruby-dev rubygems
+            sudo gem install fpm
+            fpm -s dir -t deb -n stackfetch -v ${VERSION#v} \
               --architecture ${{ matrix.arch }} \
               --prefix /usr/local/bin \
-              --description "StackFetch CLI tool" \
-              $OUTPUT_FILE
-
-      - name: Create Archive (macOS/Windows)
-        if: matrix.os != 'ubuntu-latest'
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            7z a stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip $OUTPUT_FILE
+              "$OUTPUT_FILE"
+            # fpm names the .deb like: stackfetch_VERSION_ARCH.deb
+            PACKAGE=$(ls stackfetch_*_${{ matrix.arch }}.deb)
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            7z a stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip "$OUTPUT_FILE"
+            PACKAGE="stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip"
           else
-            tar czf stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.tar.gz $OUTPUT_FILE
+            tar czf stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.tar.gz "$OUTPUT_FILE"
+            PACKAGE="stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.tar.gz"
           fi
+          echo "PACKAGE_FILE=$PACKAGE" >> $GITHUB_ENV
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            stackfetch-*
-            *.deb
-            *.tar.gz
-            *.zip
+            ${{ env.OUTPUT_FILE }}
+            ${{ env.PACKAGE_FILE }}
           generate_release_notes: true
 
       - name: Update Latest Tag
         if: github.repository == 'Sanix-Darker/stackfetch'
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: latest
           name: Latest
           body: "Latest release: ${{ env.VERSION }}"
           overwrite: true
           files: |
-            stackfetch-*
-            *.deb
-            *.tar.gz
-            *.zip
+            ${{ env.OUTPUT_FILE }}
+            ${{ env.PACKAGE_FILE }}
