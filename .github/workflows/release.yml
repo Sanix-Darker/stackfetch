@@ -45,16 +45,19 @@ jobs:
       - name: Build binary
         shell: bash
         run: |
+          # derive GOOS from the matrix name
           GOOS=$(echo "${{ matrix.os }}" | sed 's/-latest//')
-          GOARCH=${{ matrix.arch }}
+          GOARCH="${{ matrix.arch }}"
           EXT=""
-          [[ "$GOOS" == "windows" ]] && EXT=".exe"
-          OUTPUT="stackfetch-${{ matrix.pkg_os }}-${{ GOARCH }}${EXT}"
+          if [[ "$GOOS" == "windows" ]]; then
+            EXT=".exe"
+          fi
+          OUTPUT="stackfetch-${{ matrix.pkg_os }}-${GOARCH}${EXT}"
           go build -ldflags "-s -w -X main.version=${{ env.VERSION }}" \
             -o "$OUTPUT" ./cmd/stackfetch
           echo "OUTPUT_FILE=$OUTPUT" >> $GITHUB_ENV
 
-      - name: Create Package
+      - name: Package artifact
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
@@ -64,7 +67,7 @@ jobs:
               --architecture ${{ matrix.arch }} \
               --prefix /usr/local/bin \
               "$OUTPUT_FILE"
-            # fpm names the .deb like: stackfetch_VERSION_ARCH.deb
+            # fpm writes something like stackfetch_VERSION_ARCH.deb
             PACKAGE=$(ls stackfetch_*_${{ matrix.arch }}.deb)
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             7z a stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip "$OUTPUT_FILE"
