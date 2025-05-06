@@ -26,9 +26,9 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 ### LINUX (DEBIAN/UBUNTU)
 
 ```bash
-echo "deb [trusted=yes] https://github.com/sanix-darker/stackfetch/releases/latest/download/ ./" | sudo tee /etc/apt/sources.list.d/stackfetch.list
-
-sudo apt update && sudo apt install stackfetch
+echo "deb [trusted=yes] https://github.com/sanix-darker/stackfetch/releases/latest/download/ ./" | \
+    sudo tee /etc/apt/sources.list.d/stackfetch.list
+sudo apt update -y && sudo apt install stackfetch -y
 ```
 
 ### LINUX (ARCH)

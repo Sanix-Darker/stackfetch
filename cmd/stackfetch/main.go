@@ -23,6 +23,8 @@ type result struct {
 	Guessed  []string           `json:"guessed,omitempty"`
 }
 
+var version = "dev"
+
 func main() {
     var jsonOut bool
 
@@ -30,7 +32,12 @@ func main() {
         Use:   "stackfetch [items…]",
         Short: "System / language / DevOps stack fetcher",
         Args:  cobra.ArbitraryArgs,
+        Version: version,
     }
+    // for the --version flag
+    root.InitDefaultVersionFlag()
+    root.SetVersionTemplate("stackfetch version {{.Version}}\n")
+
     root.PersistentFlags().BoolVarP(&jsonOut, "json", "j", false, "output as JSON")
     root.RunE = func(cmd *cobra.Command, args []string) error {
         return runStackfetch(jsonOut, nil, args)

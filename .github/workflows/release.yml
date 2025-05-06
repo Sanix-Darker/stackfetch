@@ -53,7 +53,7 @@ jobs:
             EXT=".exe"
           fi
           OUTPUT="stackfetch-${{ matrix.pkg_os }}-${GOARCH}${EXT}"
-          go build -ldflags "-s -w -X main.version=${{ env.VERSION }}" \
+          go build -ldflags "-s -w -X main.version=$(git describe --tags)" \
             -o "$OUTPUT" ./cmd/stackfetch
           echo "OUTPUT_FILE=$OUTPUT" >> $GITHUB_ENV
 
