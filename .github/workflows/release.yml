@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*'  # e.g. v0.0.3
-# only for testing purposes
-    branches: [ "**" ]
 
 permissions:
   contents: write

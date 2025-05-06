@@ -37,6 +37,15 @@ sudo apt update && sudo apt install stackfetch
 yay -S stackfetch  # or paru
 ```
 
+### DEV INSTALL
+
+```bash
+go install github.com/sanix-darker/stackfetch/cmd/stackfetch@latest  # source build
+# — or — (depending on the OS you're using)
+wget https://github.com/Sanix-Darker/stackfetch/releases/download/v0.0.2/stackfetch-ubuntu-amd64
+sudo chmod +x stackfetch-* && sudo mv stackfetch-* /usr/local/bin/stackfetch
+```
+
 ### WINDOWS
 
 ```bash
