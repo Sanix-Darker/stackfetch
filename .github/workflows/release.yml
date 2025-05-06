@@ -68,7 +68,7 @@ jobs:
               --prefix /usr/local/bin \
               "$OUTPUT_FILE"
             # fpm writes something like stackfetch_VERSION_ARCH.deb
-            PACKAGE=$(ls stackfetch_*_${{ matrix.arch }}.deb)
+            PACKAGE=$(ls stackfetch.deb)
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             7z a stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip "$OUTPUT_FILE"
             PACKAGE="stackfetch-${{ matrix.pkg_os }}-${{ matrix.arch }}.zip"
