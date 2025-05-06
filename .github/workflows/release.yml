@@ -93,9 +93,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: latest
-          name: Latest
-          body: "Latest release: ${{ env.VERSION }}"
-          overwrite: true
+          name: latest
+          body: "latest release: ${{ env.VERSION }}"
           files: |
             ${{ env.OUTPUT_FILE }}
             ${{ env.PACKAGE_FILE }}
