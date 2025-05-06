@@ -26,15 +26,15 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 ### LINUX (DEBIAN/UBUNTU)
 
 ```bash
-echo "deb [trusted=yes] https://github.com/sanix-darker/stackfetch/releases/latest/download/ ./" | sudo tee /etc/apt/sources.list.d/stackfetch.list
+VERSION=v0.0.7 # the version you want (or latest)
+ARCH=$(dpkg --print-architecture)              # e.g. amd64
+URL="https://github.com/sanix-darker/stackfetch/releases/download/${VERSION}/stackfetch-ubuntu-${ARCH}.deb"
+# Download and install:
+curl -fsSL "$URL" -o stackfetch.deb
+sudo dpkg -i stackfetch.deb
 
-sudo apt update && sudo apt install stackfetch
-```
-
-### LINUX (ARCH)
-
-```bash
-yay -S stackfetch  # or paru
+# (Optional) Clean up:
+rm stackfetch.deb
 ```
 
 ### DEV INSTALL
