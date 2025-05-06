@@ -18,10 +18,10 @@ import (
 )
 
 type result struct {
-	System   sysinfo.Info           `json:"system"`
-	Reports  []langfetch.Result     `json:"reports"`
-	Services []services.Status      `json:"services,omitempty"`
-	Guessed  []string               `json:"guessed,omitempty"`
+    System   sysinfo.Info           `json:"system"`
+    Reports  []langfetch.Result     `json:"reports"`
+    Services []services.Status      `json:"services,omitempty"`
+    Guessed  []string               `json:"guessed,omitempty"`
     Ports    []services.PortStatus  `json:"ports,omitempty"`
 }
 
