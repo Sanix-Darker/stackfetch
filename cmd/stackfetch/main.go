@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/sanix-darker/stackfetch/internal/guess"
@@ -17,10 +18,11 @@ import (
 )
 
 type result struct {
-	System   sysinfo.Info       `json:"system"`
-	Reports  []langfetch.Result `json:"reports"`
-	Services []services.Status  `json:"services,omitempty"`
-	Guessed  []string           `json:"guessed,omitempty"`
+    System   sysinfo.Info           `json:"system"`
+    Reports  []langfetch.Result     `json:"reports"`
+    Services []services.Status      `json:"services,omitempty"`
+    Guessed  []string               `json:"guessed,omitempty"`
+    Ports    []services.PortStatus  `json:"ports,omitempty"`
 }
 
 var version = "dev"
@@ -111,6 +113,20 @@ func runStackfetch(jsonOut bool, guessed, args []string) error {
                 printServiceLine(d, st)
             }
         }
+    }
+
+    // check port status for those same services
+    //    500ms is a reasonable per-port timeout
+    res.Ports = services.CheckPorts(deps, 500*time.Millisecond)
+
+    // then in your plain-text output:
+    fmt.Println("\n=== Ports ===")
+    for _, ps := range res.Ports {
+        status := "closed"
+        if ps.Open {
+            status = "open"
+        }
+        fmt.Printf("  %s:%d → %s\n", ps.Service, ps.Port, status)
     }
 
     return nil

@@ -4,12 +4,13 @@
 
 ![screenshot](./screenshot.png)
 
-Ever got an issue from someone you can't reproduce on your side ?
-But then asking to run a bunch of command line to get like, the version of his cli/package-manager/system environment, processor... ?
+Ever got an issue from someone on a project and you can't reproduce on your side ?
+But then asking to run a bunch of command line to get like, the version of his cli/package-manager/system environment, what is the processor... ?
 
-Yes, me too.
+As a maintainer, yes, me too...
 
-Meet stackfetch, with a provided programming language or just a stack, you are going to have all informations you want to help debuguing.
+Meet `stackfetch`, with a provided programming language or just a stack, you are going to have all informations you want to help debuguing.
+even regarding services or ports opened / closed.
 
 ## FEATURES
 
@@ -20,6 +21,7 @@ Meet stackfetch, with a provided programming language or just a stack, you are g
 - **Guess Mode**: `Automatically guess the stack of the current directory project.`
     `stackfetch guess # or just : stackfetch ?`
 - **Services status:** Checks for running services from which the stack depends on.
+- **Services port:** Checks for opened port regarding services from which the stack depends on.
 
 ## HOW TO INSTALL
 
