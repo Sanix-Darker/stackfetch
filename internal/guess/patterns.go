@@ -102,6 +102,50 @@ func baseNameRules() map[string][]string {
     }
 }
 
+// dirRules returns a map of directory names to their associated stacks.
+// This helps detect stacks based on project structure rather than just files.
+func dirRules() map[string][]string {
+    return map[string][]string{
+        // JavaScript/TypeScript
+        "node_modules":    {"node"},
+        ".next":          {"next-trpc"},
+        "dist":           {"node", "typescript"}, // Common output dir
+
+        // Rust
+        "src-tauri":      {"tauri"},
+        "target":         {"rust"},
+
+        // Elixir
+        "_build":         {"elixir", "phoenix"},
+        "deps":          {"elixir"},
+
+        // Bun/Deno
+        ".bun":          {"bun"},
+        ".deno":         {"deno"},
+
+        // Framework-specific
+        "components":    {"next-trpc", "phoenix"}, // Next.js/React or Phoenix LiveView
+        "app":           {"phoenix", "rails"},     // Phoenix or Ruby on Rails
+        "lib":           {"elixir", "phoenix"},
+        "priv":          {"phoenix"},
+
+        // Database
+        "migrations":    {"phoenix", "rails", "django"},
+        "seeders":       {"phoenix", "laravel"},
+
+        // Configuration
+        ".github":       {"ci"}, // CI/CD indication
+        "docker":        {"docker"},
+        "k8s":           {"kstack"},
+
+        // Special cases
+        "storybook":     {"react", "vue"},  // UI component development
+        "cypress":      {"testing"},       // E2E testing
+        "android":      {"flutter"},       // Flutter projects
+        "ios":          {"flutter"},
+    }
+}
+
 // extRules maps extensions to langfetch keys.  The table below is trimmed for
 // brevity but the code that builds it in real usage concatenates thousands of
 // entries generated from language ↔ extension matrices.

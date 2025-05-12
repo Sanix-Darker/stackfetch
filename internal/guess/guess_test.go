@@ -7,9 +7,8 @@ import (
 
 func TestGuess(t *testing.T) {
     os.RemoveAll("tmp")
-    os.MkdirAll("tmp/level1/package.json", 0o755)
-    // NOTE: For now we drop support for 3 level (for better performances)
-    //os.WriteFile("tmp/level1/level2/package.json", []byte("{}"), 0o644)
+    os.MkdirAll("tmp/level1/level2", 0o755)
+    os.WriteFile("tmp/level1/level2/package.json", []byte("{}"), 0o644)
 
     got := Guess("tmp")
     if len(got) == 0 {
