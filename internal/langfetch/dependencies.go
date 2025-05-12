@@ -1,6 +1,9 @@
 package langfetch
 
-import "strings"
+import (
+	"os"
+	"strings"
+)
 
 // depMap defines inter-item dependencies: if item X requires Y,Z before it.
 var depMap = map[string][]string{
