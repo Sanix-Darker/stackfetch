@@ -88,7 +88,42 @@ Module file: /home/dk/github/stackfetch/go.mod
 **NOTE:** You can share the output of a stackfetch over [termbin](https://termbin.com)
 
 ```console
+$ stackfetch go LAMP | nc termbin.com 9999
+https://termbin.com/vui7
 
+$ curl -LSs https://termbin.com/vui7
+=== System ===
+OS: ubuntu 20.04
+Arch: amd64
+CPUs: 8
+Kernel: 5.15.0-136-generic
+Hostname: zx
+Uptime: 13d 1h
+VM: kvm (host)
+
+=== go ===
+Go Version: go version go1.20 linux/amd64
+Module file: /home/dk/github/stackfetch/go.mod
+
+=== LAMP ===
+LAMP
+Apache: Server version: Apache/2.4.41 (Ubuntu)
+Server built:   2025-04-02T18:34:29
+MySQL: mysql  Ver 8.0.42-0ubuntu0.20.04.1 for Linux on x86_64 ((Ubuntu))
+PHP: PHP 8.3.20 (cli) (built: Apr 10 2025 21:33:00) (NTS)
+Copyright (c) The PHP Group
+Zend Engine v4.3.20, Copyright (c) Zend Technologies
+    with Zend OPcache v8.3.20, Copyright (c), by Zend Technologies
+    with Xdebug v3.4.2, Copyright (c) 2002-2025, by Derick Rethans
+  └─ depends on:
+✗ apache (not installed)
+! mysql (installed, not running)
+! php (installed, not running)
+
+=== Ports ===
+  apache:80 → open
+  apache:443 → closed
+  mysql:3306 → closed
 ```
 
 ## CONTRIBUTORS
