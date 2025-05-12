@@ -8,7 +8,7 @@ import (
 )
 
 // MaxDepth defines how deep the directory walker descends from the root.
-const MaxDepth = 3
+const MaxDepth = 2
 
 // Guess inspects the project tree up to MaxDepth and infers langfetch keys
 // using the filename + extension maps generated in patterns.go. The union of

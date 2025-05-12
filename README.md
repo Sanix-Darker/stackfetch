@@ -82,6 +82,15 @@ Go Version: go version go1.20 linux/amd64
 Module file: /home/dk/github/stackfetch/go.mod
 ```
 
+
+## BONUS
+
+**NOTE:** You can share the output of a stackfetch over [termbin](https://termbin.com)
+
+```console
+
+```
+
 ## CONTRIBUTORS
 
 - [sanixdk](https://github.com/sanix-darker)
