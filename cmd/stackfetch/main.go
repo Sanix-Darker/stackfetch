@@ -100,11 +100,13 @@ func runStackfetch(jsonOut bool, guessed, args []string) error {
     }
 
     for _, r := range res.Reports {
-        fmt.Printf("\n=== %s ===\n", r.Key)
         if r.Err != nil {
-            fmt.Fprintln(os.Stderr, "stackfetch:", r.Err)
+            // on guess mode, no need to errors each line i guess
+            // fmt.Fprintln(os.Stderr, "stackfetch:", r.Err)
             continue
         }
+
+        fmt.Printf("\n=== %s ===\n", r.Key)
         fmt.Println(r.Info)
         if depList := langfetch.Dependencies(r.Key); len(depList) > 0 {
             fmt.Println("  └─ depends on:")
@@ -120,7 +122,9 @@ func runStackfetch(jsonOut bool, guessed, args []string) error {
     res.Ports = services.CheckPorts(deps, 500*time.Millisecond)
 
     // then in your plain-text output:
-    fmt.Println("\n=== Ports ===")
+    if len(res.Ports) > 0 {
+        fmt.Println("\n=== Ports ===")
+    }
     for _, ps := range res.Ports {
         status := "closed"
         if ps.Open {
