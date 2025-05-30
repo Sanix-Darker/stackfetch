@@ -8,7 +8,10 @@ import (
 )
 
 // MaxDepth defines how deep the directory walker descends from the root.
-const MaxDepth = 4 // Increased from 3 to better detect nested projects
+const (
+	MaxDepth = 2 // Increased from 3 to better detect nested projects
+	maxHits  = 6
+)
 
 // Guess inspects the project tree up to MaxDepth and infers langfetch keys
 // using the filename + extension maps generated in patterns.go. The union of
@@ -27,6 +30,7 @@ func Guess(root string) []string {
 		}
 	}
 
+	hits := 0
 	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil // ignore I/O errors for robustness
@@ -70,6 +74,9 @@ func Guess(root string) []string {
 			}
 		}
 
+		if hits >= maxHits {
+			return filepath.SkipDir
+		}
 		return nil
 	})
 

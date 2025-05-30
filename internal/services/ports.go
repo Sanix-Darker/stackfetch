@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -230,25 +231,32 @@ type PortStatus struct {
 // It returns a slice of PortStatus entries for every configured port.
 // The timeout controls the DialTimeout duration per port.
 func CheckPorts(svcs []string, timeout time.Duration) []PortStatus {
-	var out []PortStatus
+	var (
+		out []PortStatus
+		mu  sync.Mutex
+		wg  sync.WaitGroup
+	)
 	for _, svc := range svcs {
 		ports, ok := DefaultPorts[svc]
 		if !ok {
 			continue
 		}
 		for _, p := range ports {
-			addr := fmt.Sprintf("127.0.0.1:%d", p)
-			conn, err := net.DialTimeout("tcp", addr, timeout)
-			open := err == nil
-			if conn != nil {
-				conn.Close()
-			}
-			out = append(out, PortStatus{
-				Service: svc,
-				Port:    p,
-				Open:    open,
-			})
+			wg.Add(1)
+			go func(s string, port int) {
+				defer wg.Done()
+				addr := fmt.Sprintf("127.0.0.1:%d", port)
+				conn, err := net.DialTimeout("tcp", addr, timeout)
+				open := err == nil
+				if conn != nil {
+					conn.Close()
+				}
+				mu.Lock()
+				out = append(out, PortStatus{s, port, open})
+				mu.Unlock()
+			}(svc, p)
 		}
 	}
+	wg.Wait()
 	return out
 }

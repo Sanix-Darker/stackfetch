@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+
+	"github.com/sanix-darker/stackfetch/internal/cache"
 )
 
 type LangInfo struct {
@@ -26,6 +28,12 @@ func (li LangInfo) String() string {
 // executor abstraction for test stubbing
 var execCmd = exec.Command
 
+// ExecRunner can be swapped at runtime (e.g. container mode).
+// Default implementation = cached local exec.  Override from other packages.
+var ExecRunner = func(bin string, args ...string) ([]byte, error) {
+	return cache.Run(bin, args...)
+}
+
 type fetchFn func() (LangInfo, error)
 
 // Registry of language names -> fetcher
@@ -46,7 +54,7 @@ func Fetch(lang string) (LangInfo, error) {
 
 // Helper to grab first line of command output
 func runFirst(cmd string, args ...string) (string, error) {
-	out, err := execCmd(cmd, args...).Output()
+	out, err := ExecRunner(cmd, args...)
 	if err != nil {
 		return "", err
 	}
