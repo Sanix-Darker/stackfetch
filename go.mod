@@ -3,6 +3,7 @@ module github.com/sanix-darker/stackfetch
 go 1.20
 
 require (
+    github.com/olekukonko/tablewriter v0.0.5 // UI table output
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
