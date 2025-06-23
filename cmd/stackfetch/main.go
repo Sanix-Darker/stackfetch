@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/sanix-darker/stackfetch/internal/cloudmeta"
 	"github.com/sanix-darker/stackfetch/internal/containerexec"
 	"github.com/sanix-darker/stackfetch/internal/guess"
@@ -223,11 +222,11 @@ func printServiceLine(name string, s services.Status) {
 	var line string
 	switch {
 	case !s.Installed:
-		line = color.RedString("✗ %s (not installed)", name)
+		line = ui.RedString("✗ %s (not installed)", name)
 	case s.Running:
-		line = color.GreenString("✔ %s (running)", name)
+		line = ui.GreenString("✔ %s (running)", name)
 	default:
-		line = color.YellowString("! %s (installed, not running)", name)
+		line = ui.YellowString("! %s (installed, not running)", name)
 	}
 	fmt.Println(line)
 }

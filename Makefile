@@ -32,6 +32,10 @@ clean:
 	@rm -f $(BINARY_NAME)
 	@echo "Clean complete"
 
+test:
+	@echo "Running tests"
+	@go test ./...
+
 tidy:
 	@$(GOMOD) tidy
 	@echo "Go modules tidied"
