@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net"
+	"sort"
 	"sync"
 	"time"
 )
@@ -258,5 +259,11 @@ func CheckPorts(svcs []string, timeout time.Duration) []PortStatus {
 		}
 	}
 	wg.Wait()
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Service == out[j].Service {
+			return out[i].Port < out[j].Port
+		}
+		return out[i].Service < out[j].Service
+	})
 	return out
 }

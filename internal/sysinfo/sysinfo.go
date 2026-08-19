@@ -2,6 +2,7 @@ package sysinfo
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 
@@ -20,7 +21,19 @@ type Info struct {
 }
 
 func Collect() Info {
-	host, _ := ps.Info()
+	host, err := ps.Info()
+	if err != nil || host == nil {
+		hostname, _ := os.Hostname()
+		return Info{
+			OS:        runtime.GOOS,
+			Arch:      runtime.GOARCH,
+			CPUs:      runtime.NumCPU(),
+			Hostname:  hostname,
+			Kernel:    "",
+			Uptime:    "unknown",
+			GoVersion: runtime.Version(),
+		}
+	}
 
 	virt := ""
 	if v, role := host.VirtualizationSystem, host.VirtualizationRole; v != "" {
@@ -33,6 +46,7 @@ func Collect() Info {
 		Arch:           runtime.GOARCH,
 		CPUs:           runtime.NumCPU(),
 		Hostname:       host.Hostname,
+		GoVersion:      runtime.Version(),
 		Uptime:         secondsToHuman(host.Uptime),
 		Virtualization: virt,
 	}

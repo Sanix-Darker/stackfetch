@@ -34,9 +34,9 @@ type result struct {
 var version = "dev"
 
 type runOpts struct {
-	json, md        bool
-	badge           string
-	container       string
+	json, md  bool
+	badge     string
+	container string
 }
 
 func main() {
@@ -135,8 +135,25 @@ func runStackfetch(opt runOpts, guessed, args []string) error {
 		res.Ports = services.CheckPorts(deps, 300*time.Millisecond)
 	}
 
-    fmt.Println("=== System ===")
-    fmt.Println(res.System)
+	// OUTPUT SECTION  (json / md / plain)
+	if opt.json {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(res)
+	}
+
+	if opt.md {
+		printMarkdownOutput(res, guessed)
+		return nil
+	}
+
+	printPlainOutput(res, guessed)
+	return nil
+}
+
+func printPlainOutput(res result, guessed []string) {
+	fmt.Println("=== System ===")
+	fmt.Println(res.System)
 
 	if len(guessed) > 0 {
 		fmt.Printf("\nGuessed: %s\n", filepath.Base("."))
@@ -145,8 +162,9 @@ func runStackfetch(opt runOpts, guessed, args []string) error {
 
 	for _, r := range res.Reports {
 		if r.Err != nil {
-			// on guess mode, no need to errors each line i guess
-			// fmt.Fprintln(os.Stderr, "stackfetch:", r.Err)
+			if len(guessed) == 0 {
+				fmt.Fprintf(os.Stderr, "stackfetch: %s: %v\n", r.Key, r.Err)
+			}
 			continue
 		}
 
@@ -161,24 +179,26 @@ func runStackfetch(opt runOpts, guessed, args []string) error {
 		}
 	}
 
-	// OUTPUT SECTION  (json / md / plain)
-	if opt.json {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(res)
-	}
-
-	// Markdown
-	if opt.md {
-		ui.Heading("System", 2)
-		fmt.Printf("```text\n%s\n```\n\n", res.System)
-		for _, r := range res.Reports {
-			fmt.Printf("### %s\n```text\n%s\n```\n\n", r.Key, r.Info)
+	if res.Cloud.Provider != "" {
+		fmt.Println("\n=== Cloud ===")
+		fmt.Printf("  Provider: %s\n", res.Cloud.Provider)
+		if res.Cloud.InstanceID != "" {
+			fmt.Printf("  Instance: %s\n", res.Cloud.InstanceID)
 		}
-		return nil
+		if res.Cloud.InstanceType != "" {
+			fmt.Printf("  Instance Type: %s\n", res.Cloud.InstanceType)
+		}
+		if res.Cloud.Region != "" {
+			fmt.Printf("  Region: %s\n", res.Cloud.Region)
+		}
 	}
 
-	// Plain text (original)
+	fmt.Println("\n=== Security ===")
+	fmt.Printf("  Root: %t\n", res.Security.Root)
+	fmt.Printf("  SELinux: %s\n", res.Security.SELinux)
+	fmt.Printf("  SSH open on 22: %t\n", res.Security.SSHOpen)
+	fmt.Printf("  Kernel EOL check: %t\n", res.Security.KernelEOL)
+
 	if len(res.Ports) > 0 {
 		fmt.Println("\n=== Ports ===")
 		for _, ps := range res.Ports {
@@ -189,8 +209,71 @@ func runStackfetch(opt runOpts, guessed, args []string) error {
 			fmt.Printf("  %s:%d → %s\n", ps.Service, ps.Port, status)
 		}
 	}
+}
 
-	return nil
+func printMarkdownOutput(res result, guessed []string) {
+	ui.Heading("System", 2)
+	fmt.Printf("```text\n%s\n```\n\n", res.System)
+
+	if len(guessed) > 0 {
+		ui.Heading("Guess", 2)
+		fmt.Printf("Guessed: `%s`\n", filepath.Base("."))
+		fmt.Printf("Detected: `%s`\n\n", strings.Join(guessed, ", "))
+	}
+
+	for _, r := range res.Reports {
+		if r.Err != nil {
+			if len(guessed) == 0 {
+				ui.Heading(r.Key, 3)
+				fmt.Printf("`error`: %v\n\n", r.Err)
+			}
+			continue
+		}
+		ui.Heading(r.Key, 3)
+		fmt.Printf("```text\n%s\n```\n\n", r.Info)
+		if depList := langfetch.Dependencies(r.Key); len(depList) > 0 {
+			fmt.Println("depends on:")
+			for _, d := range depList {
+				st := services.StatusByName(d)
+				fmt.Printf(" - %s: installed=%t running=%t\n", d, st.Installed, st.Running)
+			}
+			fmt.Println()
+		}
+	}
+
+	if res.Cloud.Provider != "" {
+		ui.Heading("Cloud", 2)
+		fmt.Printf("Provider: %s\n", res.Cloud.Provider)
+		if res.Cloud.InstanceID != "" {
+			fmt.Printf("Instance ID: %s\n", res.Cloud.InstanceID)
+		}
+		if res.Cloud.InstanceType != "" {
+			fmt.Printf("Instance Type: %s\n", res.Cloud.InstanceType)
+		}
+		if res.Cloud.Region != "" {
+			fmt.Printf("Region: %s\n", res.Cloud.Region)
+		}
+		fmt.Println()
+	}
+
+	ui.Heading("Security", 2)
+	fmt.Printf("Root: %t\n", res.Security.Root)
+	fmt.Printf("SELinux: %s\n", res.Security.SELinux)
+	fmt.Printf("SSH open on 22: %t\n", res.Security.SSHOpen)
+	fmt.Printf("Kernel EOL check: %t\n", res.Security.KernelEOL)
+	fmt.Println()
+
+	if len(res.Ports) > 0 {
+		ui.Heading("Ports", 2)
+		for _, ps := range res.Ports {
+			status := "closed"
+			if ps.Open {
+				status = "open"
+			}
+			fmt.Printf("%s:%d → %s\n", ps.Service, ps.Port, status)
+		}
+		fmt.Println()
+	}
 }
 
 // containerSystem fetches minimal sysinfo from inside a running container.
