@@ -2,6 +2,7 @@ package cloudmeta
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -91,6 +92,9 @@ func fetchH(url string, hdr map[string]string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", errors.New(resp.Status)
+	}
 	b, _ := io.ReadAll(resp.Body)
 	return strings.TrimSpace(string(b)), nil
 }

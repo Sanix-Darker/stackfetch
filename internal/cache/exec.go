@@ -33,7 +33,7 @@ func Run(bin string, args ...string) ([]byte, error) {
 	path := filepath.Join(dir, key)
 
 	if e, ok := read(path); ok && time.Since(e.T) < ttl {
-		return []byte{}, nil
+		return []byte(e.O), nil
 	}
 
 	out, err := exec.Command(fp, args...).CombinedOutput()

@@ -1,6 +1,6 @@
 package langfetch
 
-// This file registers a bunch of **single‑binary** runtimes & DevOps tools in
+// This file registers a bunch of single-binary runtimes and DevOps tools in
 // ~20 lines.
 import "strings"
 
@@ -22,7 +22,7 @@ func init() {
 		{"julia", "Julia", "julia", []string{"--version"}},
 		// ─── DevOps / Containers ──────────────────────────────────────
 		{"docker", "Docker", "docker", []string{"--version"}},
-		{"compose", "Docker‑Compose", "docker", []string{"compose", "version"}},
+		{"compose", "Docker-Compose", "docker", []string{"compose", "version"}},
 		{"podman", "Podman", "podman", []string{"--version"}},
 		{"kubectl", "kubectl", "kubectl", []string{"version", "--client", "--short"}},
 		{"helm", "Helm", "helm", []string{"version", "--short"}},
@@ -33,10 +33,10 @@ func init() {
 		{"packer", "Packer", "packer", []string{"--version"}},
 		{"git", "Git", "git", []string{"--version"}},
 		{"make", "GNU Make", "make", []string{"--version"}},
-		{"redis", "Redis", "redis‑server", []string{"--version"}},
+		{"redis", "Redis", "redis-server", []string{"--version"}},
 		{"rabbitmq", "RabbitMQ", "rabbitmqctl", []string{"status"}},
 		{"cassandra", "Cassandra", "cassandra", []string{"-v"}},
-		{"kafka", "Apache Kafka", "kafka‑topology‑builder", []string{"--version"}},
+		{"kafka", "Apache Kafka", "kafka-topology-builder", []string{"--version"}},
 	}
 	for _, s := range simple {
 		// just for loop vars

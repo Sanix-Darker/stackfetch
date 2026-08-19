@@ -21,16 +21,22 @@ func Guess(root string) []string {
 	ext := extRules()
 	dir := dirRules()
 	seen := map[string]struct{}{}
+	hits := 0
 
 	add := func(items []string) {
 		for _, it := range items {
 			if it != "" { // Skip empty entries
-				seen[it] = struct{}{}
+				if _, exists := seen[it]; !exists {
+					seen[it] = struct{}{}
+					hits++
+				}
+				if hits >= maxHits {
+					return
+				}
 			}
 		}
 	}
 
-	hits := 0
 	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil // ignore I/O errors for robustness
@@ -59,6 +65,12 @@ func Guess(root string) []string {
 		name := strings.ToLower(d.Name())
 		if items, ok := base[name]; ok {
 			add(items)
+		} else {
+			for pattern, items := range base {
+				if strings.HasPrefix(pattern, "*") && strings.HasSuffix(name, pattern[1:]) {
+					add(items)
+				}
+			}
 		}
 
 		if e := strings.ToLower(filepath.Ext(name)); e != "" {
@@ -75,7 +87,7 @@ func Guess(root string) []string {
 		}
 
 		if hits >= maxHits {
-			return filepath.SkipDir
+			return filepath.SkipAll
 		}
 		return nil
 	})
