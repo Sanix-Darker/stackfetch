@@ -22,6 +22,7 @@ even regarding services or ports opened / closed.
     `stackfetch guess # or just : stackfetch ?`
 - **Services status:** Checks for running services from which the stack depends on.
 - **Services port:** Checks for opened port regarding services from which the stack depends on.
+- **QA matrix:** `stackfetch qa` outputs post-release feature story health in plain and markdown formats.
 
 ## HOW TO INSTALL
 
@@ -61,6 +62,9 @@ scoop install stackfetch
 stackfetch                         # system only (BLAZINGLY fast)
 stackfetch node python docker      # add Node, Python, Docker info
 stackfetch mean lamp --json        # JSON report for MEAN & LAMP stacks
+stackfetch qa                     # show the current QA matrix
+
+stackfetch qa --area qa --markdown
 
 
 # Guess mode example :
