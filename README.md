@@ -26,6 +26,7 @@ even regarding services or ports opened / closed.
 - **QA strict/validation:** `stackfetch qa --validate` checks tracker integrity and `stackfetch qa --strict` fails when blocked stories are found.
 - **QA matrix control:** `--status`, `--area`, `--fail-on`, and `--tracker` flags for filtering, custom gating rules, and custom tracker paths.
 - **Discover keys:** `stackfetch keys` lists supported stacks/runtimes, with `--contains` filter and `--sort asc|desc` ordering.
+- **Key introspection:** `stackfetch keyinfo <key>` reports support status, dependency map, and optional live fetch details.
 
 ## HOW TO INSTALL
 
@@ -69,6 +70,8 @@ stackfetch keys                   # list all supported keys
 stackfetch keys --contains node    # show keys matching "node"
 stackfetch keys --sort desc        # show keys in descending order
 stackfetch keys --contains go --json # list matching keys as JSON
+stackfetch keyinfo go             # show key metadata before fetching versions
+stackfetch keyinfo gom --json     # inspect typo key and get suggestions
 stackfetch qa                     # show the current QA matrix
 stackfetch qa --status todo       # show only TODO stories
 stackfetch qa --area core,qa       # show Core and QA areas (case-insensitive)
