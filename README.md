@@ -24,6 +24,7 @@ even regarding services or ports opened / closed.
 - **Services port:** Checks for opened port regarding services from which the stack depends on.
 - **QA matrix:** `stackfetch qa` outputs post-release feature story health in plain and markdown formats.
 - **QA strict/validation:** `stackfetch qa --validate` checks tracker integrity and `stackfetch qa --strict` fails when blocked stories are found.
+- **QA matrix control:** `--status`, `--area`, `--fail-on`, and `--tracker` flags for filtering, custom gating rules, and custom tracker paths.
 
 ## HOW TO INSTALL
 
@@ -65,7 +66,10 @@ stackfetch node python docker      # add Node, Python, Docker info
 stackfetch mean lamp --json        # JSON report for MEAN & LAMP stacks
 stackfetch qa                     # show the current QA matrix
 stackfetch qa --status todo       # show only TODO stories
+stackfetch qa --area core,qa       # show Core and QA areas (case-insensitive)
 stackfetch qa --strict           # fail pipeline when TODO/FAIL/BLOCKED stories exist
+stackfetch qa --fail-on fail      # fail when matching status set is found
+stackfetch qa --tracker /tmp/custom_FEATURE_TRACKER.csv --json # feed a custom tracker path
 stackfetch qa --validate         # validate tracker integrity
 stackfetch qa --json             # machine-readable QA report for CI
 stackfetch qa --status pass --json # machine-readable filtered report
