@@ -79,6 +79,7 @@ func main() {
 	}
 	root.AddCommand(guessCmd)
 	root.AddCommand(newQACmd(mdOut))
+	root.AddCommand(newKeysCmd())
 
 	if err := root.Execute(); err != nil {
 		log.Fatalf("%v", err)
