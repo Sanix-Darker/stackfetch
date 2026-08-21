@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -62,19 +64,45 @@ func TestFilterQAEntries(t *testing.T) {
 		{Area: "core", Status: "FAIL"},
 	}
 
-	filtered := filterQAEntries(entries, "core", parseStatusFilter("pass,fail"))
+	filtered := filterQAEntries(entries, parseAreaFilter("core"), parseStatusFilter("pass,fail"))
 	if len(filtered) != 2 {
 		t.Fatalf("len=%d, want 2", len(filtered))
 	}
 
-	filtered = filterQAEntries(entries, "", parseStatusFilter("fail"))
+	filtered = filterQAEntries(entries, nil, parseStatusFilter("fail"))
 	if len(filtered) != 1 {
 		t.Fatalf("len=%d, want 1", len(filtered))
 	}
 
-	filtered = filterQAEntries(entries, "", nil)
+	filtered = filterQAEntries(entries, nil, nil)
 	if len(filtered) != 3 {
 		t.Fatalf("len=%d, want 3", len(filtered))
+	}
+}
+
+func TestFilterQAEntriesWildcardArea(t *testing.T) {
+	entries := []qaEntry{
+		{Area: "Core Infra", Status: "PASS"},
+		{Area: "core runtime", Status: "TODO"},
+		{Area: "QA", Status: "PASS"},
+	}
+
+	filtered := filterQAEntries(entries, parseAreaFilter("core*"), parseStatusFilter("pass"))
+	if len(filtered) != 1 {
+		t.Fatalf("len=%d, want 1", len(filtered))
+	}
+}
+
+func TestCountMatchingStatusItems(t *testing.T) {
+	entries := []qaEntry{
+		{Status: "PASS"},
+		{Status: "TODO"},
+		{Status: "FAIL"},
+		{Status: "todo"},
+	}
+	count := countMatchingStatusItems(entries, parseStatusFilter("TODO,FAIL"))
+	if count != 3 {
+		t.Fatalf("count=%d, want 3", count)
 	}
 }
 
@@ -160,5 +188,79 @@ func TestParseStatusFilter(t *testing.T) {
 	}
 	if _, ok := filters["MISS"]; ok {
 		t.Fatalf("unexpected status")
+	}
+}
+
+func TestParseAreaFilter(t *testing.T) {
+	filters := parseAreaFilter("core, QA, core*")
+	if _, ok := filters["core"]; !ok {
+		t.Fatalf("missing core")
+	}
+	if _, ok := filters["qa"]; !ok {
+		t.Fatalf("missing qa")
+	}
+	if _, ok := filters["core*"]; !ok {
+		t.Fatalf("missing wildcard core*")
+	}
+}
+
+func TestLoadFeatureTrackerCSV(t *testing.T) {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	defer os.Chdir(workingDir)
+
+	tmpDir := t.TempDir()
+	tracker := filepath.Join(tmpDir, "FEATURE_TRACKER.csv")
+	payload := "id,area,feature,user_story,expected_behavior,status_after_changes,test_coverage,open_issues,resolution_notes\nF-LOCAL,Core,Output,Local story,Local check,PASS,manual,,\n"
+	if err := os.WriteFile(tracker, []byte(payload), 0o644); err != nil {
+		t.Fatalf("write temp tracker: %v", err)
+	}
+
+	got, err := loadFeatureTrackerCSV(tracker)
+	if err != nil {
+		t.Fatalf("load tracker: %v", err)
+	}
+	if string(got) != payload {
+		t.Fatalf("unexpected tracker content")
+	}
+
+	if _, err := loadFeatureTrackerCSV(filepath.Join(tmpDir, "missing.csv")); err == nil {
+		t.Fatalf("expected error when tracker path does not exist")
+	}
+}
+
+func TestQACmdFailOnStatus(t *testing.T) {
+	payload := "id,area,feature,user_story,expected_behavior,status_after_changes,test_coverage,open_issues,resolution_notes\n" +
+		"F-01,Core,Output,Local story,Local check,PASS,manual,,\n" +
+		"F-02,Core,Output,Local story,Local check,TODO,manual,,\n"
+	tmpDir := t.TempDir()
+	tracker := filepath.Join(tmpDir, "FEATURE_TRACKER.csv")
+	if err := os.WriteFile(tracker, []byte(payload), 0o644); err != nil {
+		t.Fatalf("write temp tracker: %v", err)
+	}
+
+	cmd := newQACmd(false)
+	cmd.SetArgs([]string{"--tracker", tracker, "--fail-on", "todo"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected qa gate failure")
+	}
+}
+
+func TestQACmdStrictUsesDefaultGate(t *testing.T) {
+	payload := "id,area,feature,user_story,expected_behavior,status_after_changes,test_coverage,open_issues,resolution_notes\n" +
+		"F-01,Core,Output,Local story,Local check,PASS,manual,,\n" +
+		"F-02,Core,Output,Local story,Local check,FAIL,manual,,\n"
+	tmpDir := t.TempDir()
+	tracker := filepath.Join(tmpDir, "FEATURE_TRACKER.csv")
+	if err := os.WriteFile(tracker, []byte(payload), 0o644); err != nil {
+		t.Fatalf("write temp tracker: %v", err)
+	}
+
+	cmd := newQACmd(false)
+	cmd.SetArgs([]string{"--tracker", tracker, "--strict", "true"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected strict fail on FAIL status")
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,6 +47,7 @@ type qaStatusValues struct {
 }
 
 const featureTrackerPath = "FEATURE_TRACKER.csv"
+const strictDefaultStatuses = "TODO,FAIL,BLOCKED"
 
 func newQACmd(markdown bool) *cobra.Command {
 	cmd := &cobra.Command{
@@ -54,11 +56,13 @@ func newQACmd(markdown bool) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			area, _ := cmd.Flags().GetString("area")
 			statusFilterRaw, _ := cmd.Flags().GetString("status")
+			failOnRaw, _ := cmd.Flags().GetString("fail-on")
+			trackerPath, _ := cmd.Flags().GetString("tracker")
 			strict, _ := cmd.Flags().GetBool("strict")
 			validateOnly, _ := cmd.Flags().GetBool("validate")
 
 			jsonOut := isJSONRequested(cmd)
-			trailer, err := loadFeatureTrackerCSV()
+			trailer, err := loadFeatureTrackerCSV(trackerPath)
 			if err != nil {
 				return err
 			}
@@ -70,18 +74,29 @@ func newQACmd(markdown bool) *cobra.Command {
 			issues := append([]string{}, parseIssues...)
 			issues = append(issues, validateFeatureTracker(entries)...)
 			report := summarizeQA(entries)
+			statusFilter := parseStatusFilter(statusFilterRaw)
+			areaFilter := parseAreaFilter(area)
+			failOn := parseStatusFilter(failOnRaw)
+			if strict {
+				if failOn == nil {
+					failOn = make(map[string]struct{}, 3)
+				}
+				for status := range parseStatusFilter(strictDefaultStatuses) {
+					failOn[status] = struct{}{}
+				}
+			}
 
 			if validateOnly {
 				return renderQAValidation(entries, report, issues, jsonOut, cmd.OutOrStdout())
 			}
 
-			filtered := filterQAEntries(entries, area, parseStatusFilter(statusFilterRaw))
+			filtered := filterQAEntries(entries, areaFilter, statusFilter)
 			summary := summarizeQA(filtered)
 			if err := renderQAMatrix(filtered, summary, issues, markdown, jsonOut, cmd.OutOrStdout()); err != nil {
 				return err
 			}
-			if strict && summary.blockedItems > 0 {
-				return fmt.Errorf("qa strict check failed: %d blocked stories", summary.blockedItems)
+			if failing := countMatchingStatusItems(filtered, failOn); failing > 0 && len(failOn) > 0 {
+				return fmt.Errorf("qa gate failed: %d stories match status filter [%s]", failing, formatStatusSet(failOn))
 			}
 			if strict && len(issues) > 0 {
 				return fmt.Errorf("qa validation issues: %d", len(issues))
@@ -91,6 +106,8 @@ func newQACmd(markdown bool) *cobra.Command {
 	}
 	cmd.Flags().String("area", "", "Filter matrix by area (case-insensitive)")
 	cmd.Flags().String("status", "", "Filter matrix by status (comma-separated, case-insensitive)")
+	cmd.Flags().String("fail-on", "", "Fail when status is in this comma-separated list")
+	cmd.Flags().String("tracker", "", "Use a custom tracker CSV file path")
 	cmd.Flags().Bool("strict", false, "Exit non-zero when blocked stories are present in the filtered set")
 	cmd.Flags().Bool("validate", false, "Validate tracker integrity and exit with non-zero on issues")
 	return cmd
@@ -167,6 +184,14 @@ func parseFeatureTracker(raw []byte) ([]qaEntry, []string, error) {
 }
 
 func parseStatusFilter(raw string) map[string]struct{} {
+	return parseCSVFilter(raw, normalizeStatus)
+}
+
+func parseAreaFilter(raw string) map[string]struct{} {
+	return parseCSVFilter(raw, strings.ToLower)
+}
+
+func parseCSVFilter(raw string, normalize func(string) string) map[string]struct{} {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil
@@ -175,7 +200,7 @@ func parseStatusFilter(raw string) map[string]struct{} {
 	parts := strings.Split(raw, ",")
 	statuses := make(map[string]struct{}, len(parts))
 	for _, status := range parts {
-		normalized := normalizeStatus(status)
+		normalized := normalize(strings.TrimSpace(status))
 		if normalized == "" {
 			continue
 		}
@@ -185,6 +210,34 @@ func parseStatusFilter(raw string) map[string]struct{} {
 		return nil
 	}
 	return statuses
+}
+
+func formatStatusSet(statuses map[string]struct{}) string {
+	keys := sortedStringSet(statuses)
+	return strings.Join(keys, ",")
+}
+
+func countMatchingStatusItems(entries []qaEntry, statusSet map[string]struct{}) int {
+	if len(statusSet) == 0 {
+		return 0
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if _, ok := statusSet[normalizeStatus(entry.Status)]; ok {
+			count++
+		}
+	}
+	return count
+}
+
+func sortedStringSet(items map[string]struct{}) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func normalizeStatus(raw string) string {
@@ -282,15 +335,14 @@ func summarizeQAStatus(entryCount int, byStatus map[string]int) qaStatusValues {
 	return sv
 }
 
-func filterQAEntries(entries []qaEntry, area string, statusSet map[string]struct{}) []qaEntry {
-	if area == "" && len(statusSet) == 0 {
+func filterQAEntries(entries []qaEntry, areaSet map[string]struct{}, statusSet map[string]struct{}) []qaEntry {
+	if len(areaSet) == 0 && len(statusSet) == 0 {
 		return entries
 	}
 
-	normalizedArea := strings.ToLower(strings.TrimSpace(area))
 	out := make([]qaEntry, 0, len(entries))
 	for _, e := range entries {
-		if normalizedArea != "" && strings.ToLower(e.Area) != normalizedArea {
+		if !matchesAreaFilter(e.Area, areaSet) {
 			continue
 		}
 		if len(statusSet) != 0 {
@@ -301,6 +353,29 @@ func filterQAEntries(entries []qaEntry, area string, statusSet map[string]struct
 		out = append(out, e)
 	}
 	return out
+}
+
+func matchesAreaFilter(area string, areaFilter map[string]struct{}) bool {
+	if len(areaFilter) == 0 {
+		return true
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(area))
+	for pattern := range areaFilter {
+		if pattern == "" {
+			continue
+		}
+		if strings.EqualFold(normalized, pattern) {
+			return true
+		}
+		if strings.ContainsAny(pattern, "*?") {
+			matched, err := path.Match(pattern, normalized)
+			if err == nil && matched {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func renderQAMatrix(entries []qaEntry, summary qaSummary, issues []string, markdown bool, jsonOut bool, out io.Writer) error {
@@ -454,14 +529,28 @@ func sortedKeys(m map[string]int) []string {
 	return keys
 }
 
-func loadFeatureTrackerCSV() ([]byte, error) {
-	if tracker, err := os.ReadFile(filepath.Clean(featureTrackerPath)); err == nil {
+func loadFeatureTrackerCSV(explicitPath string) ([]byte, error) {
+	if explicitPath != "" {
+		tracker, err := os.ReadFile(filepath.Clean(explicitPath))
+		if err != nil {
+			return nil, fmt.Errorf("cannot locate feature tracker file: %s", explicitPath)
+		}
 		return tracker, nil
 	}
-	if tracker, err := os.ReadFile(filepath.Join("..", featureTrackerPath)); err == nil {
-		return tracker, nil
+
+	candidates := []string{
+		featureTrackerPath,
+		filepath.Join("..", featureTrackerPath),
 	}
-	return nil, fmt.Errorf("cannot locate feature tracker file")
+	checked := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		tracker, err := os.ReadFile(filepath.Clean(candidate))
+		checked = append(checked, candidate)
+		if err == nil {
+			return tracker, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot locate feature tracker file, tried: %s", strings.Join(checked, ", "))
 }
 
 func isJSONRequested(cmd *cobra.Command) bool {
