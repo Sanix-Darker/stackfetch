@@ -78,6 +78,7 @@ func main() {
 		},
 	}
 	root.AddCommand(guessCmd)
+	root.AddCommand(newQACmd(mdOut))
 
 	if err := root.Execute(); err != nil {
 		log.Fatalf("%v", err)
@@ -156,7 +157,7 @@ func printPlainOutput(res result, guessed []string) {
 	fmt.Println(res.System)
 
 	if len(guessed) > 0 {
-		fmt.Printf("\n%s Guessed project context: %s\n", ui.CyanString("💡"), filepath.Base("."))
+		fmt.Printf("\n%s Guessed project context: %s\n", ui.CyanString(ui.Icon("lightbulb")), filepath.Base("."))
 		fmt.Printf("%s %s\n", ui.GrayString("Detected:"), strings.Join(guessed, ", "))
 	}
 
@@ -171,19 +172,20 @@ func printPlainOutput(res result, guessed []string) {
 		fmt.Printf("\n%s\n", sectionHeader(r.Key))
 		fmt.Println(r.Info)
 		if depList := langfetch.Dependencies(r.Key); len(depList) > 0 {
-			fmt.Println(ui.GrayString("  ├─ Dependency health"))
+			fmt.Printf("%s Dependency health\n", ui.GrayString("  "+ui.Icon("branch")))
 			deps := collectDependencyStatus(depList)
 			printDependencySummary(deps)
-			fmt.Println(ui.GrayString("  ├─ depends on:"))
+			fmt.Printf("%s depends on:\n", ui.GrayString("  "+ui.Icon("leaf")))
 			for _, st := range deps {
 				printServiceLine(st.Name, st)
 			}
+			fmt.Printf("%s\n", readinessBadge(readinessFromStatuses(deps)))
 		}
 	}
 
 	if res.Cloud.Provider != "" {
 		printSectionHeader("Cloud")
-		fmt.Printf("%s %s\n", ui.CyanString("🛰  provider"), ui.GreenString(res.Cloud.Provider))
+		fmt.Printf("%s %s\n", ui.CyanString(ui.Icon("satellite")+"  provider"), ui.GreenString(res.Cloud.Provider))
 		if res.Cloud.InstanceID != "" {
 			fmt.Printf("  Instance: %s\n", res.Cloud.InstanceID)
 		}
@@ -197,13 +199,17 @@ func printPlainOutput(res result, guessed []string) {
 
 	printSectionHeader("Security")
 	fmt.Printf("  %s %s %s\n", securityIndicator(res.Security.Root), ui.GreenString("Root user:"), boolState(res.Security.Root))
-	fmt.Printf("  %s %s %s\n", ui.CyanString("🔐"), ui.GreenString("SELinux:"), securityLabel(res.Security.SELinux))
+	fmt.Printf("  %s %s %s\n", ui.CyanString(ui.Icon("lock")), ui.GreenString("SELinux:"), securityLabel(res.Security.SELinux))
 	fmt.Printf("  %s %s %s\n", securityIndicator(!res.Security.SSHOpen), ui.GreenString("SSH/22: blocked:"), boolState(!res.Security.SSHOpen))
 	fmt.Printf("  %s %s %s\n", securityIndicator(!res.Security.KernelEOL), ui.GreenString("Kernel EOL:"), boolState(!res.Security.KernelEOL))
-	fmt.Printf("  %s %s %s\n", ui.GrayString("🏁"), ui.GreenString("Posture score:"), riskProfile(res.Security))
+	fmt.Printf("  %s %s %s\n", ui.GrayString(ui.Icon("flag")), ui.GreenString("Posture score:"), riskProfile(res.Security))
 
 	if len(res.Ports) > 0 {
 		printPortMatrix(res.Ports)
+	}
+	if len(res.Services) > 0 {
+		printSectionHeader("Readiness")
+		fmt.Printf("%s %s\n", ui.Icon("shield"), readinessBanner(readinessFromStatuses(res.Services)))
 	}
 }
 
@@ -263,6 +269,7 @@ func printMarkdownOutput(res result, guessed []string) {
 
 	if len(res.Ports) > 0 {
 		ui.Heading("Ports", 2)
+		fmt.Printf("Summary: %s\n", readinessPortSummary(res.Ports))
 		openCount := 0
 		for _, ps := range res.Ports {
 			if ps.Open {
@@ -343,6 +350,8 @@ func printDependencySummary(statuses []services.Status) {
 	total := len(statuses)
 	installedBadge := ui.GreenString("%d/%d", installed, total)
 	runningBadge := ui.YellowString("%d/%d", running, total)
+	depOk := ui.GreenString(ui.Icon("check"))
+	depWarn := ui.YellowString(ui.Icon("warning"))
 
 	if total == 0 {
 		fmt.Printf("  %s deps: none declared\n", ui.GrayString("◦"))
@@ -350,26 +359,26 @@ func printDependencySummary(statuses []services.Status) {
 	}
 
 	if installed == total && running == total {
-		fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("✓"), installedBadge, ui.GreenString("%d/%d", running, total))
+		fmt.Printf("  %s installed %s, running %s\n", depOk, installedBadge, ui.GreenString("%d/%d", running, total))
 		return
 	}
 
 	if installed == total {
-		fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("⚠"), installedBadge, runningBadge)
+		fmt.Printf("  %s installed %s, running %s\n", depWarn, installedBadge, runningBadge)
 		return
 	}
 
-	fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("⚠"), installedBadge, runningBadge)
+	fmt.Printf("  %s installed %s, running %s\n", depWarn, installedBadge, runningBadge)
 }
 
 func depGlyph(s services.Status) string {
 	switch {
 	case !s.Installed:
-		return ui.RedString("✗")
+		return ui.RedString(ui.Icon("cross"))
 	case s.Running:
-		return ui.GreenString("●")
+		return ui.GreenString(ui.Icon("running"))
 	default:
-		return ui.YellowString("◐")
+		return ui.YellowString(ui.Icon("partial"))
 	}
 }
 
@@ -405,9 +414,74 @@ func boolState(v bool) string {
 
 func securityIndicator(_value bool) string {
 	if _value {
-		return ui.GreenString("✔")
+		return ui.GreenString(ui.Icon("check"))
 	}
-	return ui.RedString("✗")
+	return ui.RedString(ui.Icon("cross"))
+}
+
+type readiness struct {
+	installed int
+	running   int
+	total     int
+	score     int
+}
+
+func readinessFromStatuses(statuses []services.Status) readiness {
+	r := readiness{}
+	r.total = len(statuses)
+	if r.total == 0 {
+		return r
+	}
+	for _, st := range statuses {
+		if st.Installed {
+			r.installed++
+		}
+		if st.Running {
+			r.running++
+		}
+	}
+	r.score = int(((2*r.installed + r.running) * 100) / (3 * r.total))
+	return r
+}
+
+func readinessBadge(r readiness) string {
+	if r.total == 0 {
+		return ui.GrayString("Readiness: independent")
+	}
+	note := fmt.Sprintf("Readiness: %d%% (installed %d/%d, running %d/%d)", r.score, r.installed, r.total, r.running, r.total)
+	if r.score >= 90 {
+		return ui.GreenString(note)
+	}
+	if r.score >= 65 {
+		return ui.YellowString(note)
+	}
+	return ui.RedString(note)
+}
+
+func readinessBanner(r readiness) string {
+	if r.total == 0 {
+		return "independent"
+	}
+	if r.score >= 90 {
+		return fmt.Sprintf("excellent (%d%%)", r.score)
+	}
+	if r.score >= 65 {
+		return fmt.Sprintf("warning (%d%%)", r.score)
+	}
+	return fmt.Sprintf("critical (%d%%)", r.score)
+}
+
+func readinessPortSummary(ports []services.PortStatus) string {
+	if len(ports) == 0 {
+		return "ports: none tracked"
+	}
+	open := 0
+	for _, ps := range ports {
+		if ps.Open {
+			open++
+		}
+	}
+	return fmt.Sprintf("%d/%d ports open", open, len(ports))
 }
 
 func riskProfile(sec security.Report) string {
@@ -446,14 +520,14 @@ func printPortMatrix(ports []services.PortStatus) {
 			openCount++
 		}
 	}
-	fmt.Printf("  %s %d/%d open\n", ui.GrayString("◉ exposure"), openCount, len(ports))
+	fmt.Printf("  %s %d/%d open\n", ui.GrayString(ui.Icon("goal")+" exposure"), openCount, len(ports))
 	for _, ps := range ports {
 		status := ui.RedString("closed")
-		glyph := ui.RedString("◌")
+		glyph := ui.RedString(ui.Icon("blank"))
 		if ps.Open {
 			status = ui.GreenString("open")
-			glyph = ui.GreenString("●")
+			glyph = ui.GreenString(ui.Icon("running"))
 		}
-		fmt.Printf("  %s %s:%d → %s\n", glyph, ps.Service, ps.Port, status)
+		fmt.Printf("  %s %s:%d %s %s\n", glyph, ps.Service, ps.Port, ui.Icon("arrow"), status)
 	}
 }
