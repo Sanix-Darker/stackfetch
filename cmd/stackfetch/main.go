@@ -152,36 +152,38 @@ func runStackfetch(opt runOpts, guessed, args []string) error {
 }
 
 func printPlainOutput(res result, guessed []string) {
-	fmt.Println("=== System ===")
+	printSectionHeader("System")
 	fmt.Println(res.System)
 
 	if len(guessed) > 0 {
-		fmt.Printf("\nGuessed: %s\n", filepath.Base("."))
-		fmt.Println("Detected items:", guessed)
+		fmt.Printf("\n%s Guessed project context: %s\n", ui.CyanString("💡"), filepath.Base("."))
+		fmt.Printf("%s %s\n", ui.GrayString("Detected:"), strings.Join(guessed, ", "))
 	}
 
 	for _, r := range res.Reports {
 		if r.Err != nil {
 			if len(guessed) == 0 {
-				fmt.Fprintf(os.Stderr, "stackfetch: %s: %v\n", r.Key, r.Err)
+				fmt.Fprintf(os.Stderr, "stackfetch: %s: %v\n", ui.RedString(r.Key), r.Err)
 			}
 			continue
 		}
 
-		fmt.Printf("\n=== %s ===\n", r.Key)
+		fmt.Printf("\n%s\n", sectionHeader(r.Key))
 		fmt.Println(r.Info)
 		if depList := langfetch.Dependencies(r.Key); len(depList) > 0 {
-			fmt.Println("  └─ depends on:")
-			for _, d := range depList {
-				st := services.StatusByName(d)
-				printServiceLine(d, st)
+			fmt.Println(ui.GrayString("  ├─ Dependency health"))
+			deps := collectDependencyStatus(depList)
+			printDependencySummary(deps)
+			fmt.Println(ui.GrayString("  ├─ depends on:"))
+			for _, st := range deps {
+				printServiceLine(st.Name, st)
 			}
 		}
 	}
 
 	if res.Cloud.Provider != "" {
-		fmt.Println("\n=== Cloud ===")
-		fmt.Printf("  Provider: %s\n", res.Cloud.Provider)
+		printSectionHeader("Cloud")
+		fmt.Printf("%s %s\n", ui.CyanString("🛰  provider"), ui.GreenString(res.Cloud.Provider))
 		if res.Cloud.InstanceID != "" {
 			fmt.Printf("  Instance: %s\n", res.Cloud.InstanceID)
 		}
@@ -193,21 +195,15 @@ func printPlainOutput(res result, guessed []string) {
 		}
 	}
 
-	fmt.Println("\n=== Security ===")
-	fmt.Printf("  Root: %t\n", res.Security.Root)
-	fmt.Printf("  SELinux: %s\n", res.Security.SELinux)
-	fmt.Printf("  SSH open on 22: %t\n", res.Security.SSHOpen)
-	fmt.Printf("  Kernel EOL check: %t\n", res.Security.KernelEOL)
+	printSectionHeader("Security")
+	fmt.Printf("  %s %s %s\n", securityIndicator(res.Security.Root), ui.GreenString("Root user:"), boolState(res.Security.Root))
+	fmt.Printf("  %s %s %s\n", ui.CyanString("🔐"), ui.GreenString("SELinux:"), securityLabel(res.Security.SELinux))
+	fmt.Printf("  %s %s %s\n", securityIndicator(!res.Security.SSHOpen), ui.GreenString("SSH/22: blocked:"), boolState(!res.Security.SSHOpen))
+	fmt.Printf("  %s %s %s\n", securityIndicator(!res.Security.KernelEOL), ui.GreenString("Kernel EOL:"), boolState(!res.Security.KernelEOL))
+	fmt.Printf("  %s %s %s\n", ui.GrayString("🏁"), ui.GreenString("Posture score:"), riskProfile(res.Security))
 
 	if len(res.Ports) > 0 {
-		fmt.Println("\n=== Ports ===")
-		for _, ps := range res.Ports {
-			status := "closed"
-			if ps.Open {
-				status = "open"
-			}
-			fmt.Printf("  %s:%d → %s\n", ps.Service, ps.Port, status)
-		}
+		printPortMatrix(res.Ports)
 	}
 }
 
@@ -232,10 +228,11 @@ func printMarkdownOutput(res result, guessed []string) {
 		ui.Heading(r.Key, 3)
 		fmt.Printf("```text\n%s\n```\n\n", r.Info)
 		if depList := langfetch.Dependencies(r.Key); len(depList) > 0 {
-			fmt.Println("depends on:")
-			for _, d := range depList {
-				st := services.StatusByName(d)
-				fmt.Printf(" - %s: installed=%t running=%t\n", d, st.Installed, st.Running)
+			deps := collectDependencyStatus(depList)
+			installed, running := dependencySummary(deps)
+			fmt.Printf("Depends on: %d/%d installed, %d/%d running\n", installed, len(depList), running, len(depList))
+			for _, st := range deps {
+				fmt.Printf(" - %s [%s / %s]\n", st.Name, depState(st.Installed, true), depState(st.Running, true))
 			}
 			fmt.Println()
 		}
@@ -257,6 +254,7 @@ func printMarkdownOutput(res result, guessed []string) {
 	}
 
 	ui.Heading("Security", 2)
+	fmt.Printf("Posture score: %s\n", riskProfile(res.Security))
 	fmt.Printf("Root: %t\n", res.Security.Root)
 	fmt.Printf("SELinux: %s\n", res.Security.SELinux)
 	fmt.Printf("SSH open on 22: %t\n", res.Security.SSHOpen)
@@ -265,6 +263,13 @@ func printMarkdownOutput(res result, guessed []string) {
 
 	if len(res.Ports) > 0 {
 		ui.Heading("Ports", 2)
+		openCount := 0
+		for _, ps := range res.Ports {
+			if ps.Open {
+				openCount++
+			}
+		}
+		fmt.Printf("Total open: %d / %d\n", openCount, len(res.Ports))
 		for _, ps := range res.Ports {
 			status := "closed"
 			if ps.Open {
@@ -302,14 +307,153 @@ func containerSystem(rt containerexec.Runtime, cid string) sysinfo.Info {
 }
 
 func printServiceLine(name string, s services.Status) {
-	var line string
+	fmt.Printf("    %s %s\n", depGlyph(s), depStatusLine(name, s))
+}
+
+func printSectionHeader(title string) {
+	fmt.Printf("\n=== %s ===\n", ui.BlueString(title))
+}
+
+func sectionHeader(title string) string {
+	return ui.CyanString(fmt.Sprintf("=== %s ===", title))
+}
+
+func collectDependencyStatus(depList []string) []services.Status {
+	statusList := make([]services.Status, 0, len(depList))
+	for _, dep := range depList {
+		statusList = append(statusList, services.StatusByName(dep))
+	}
+	return statusList
+}
+
+func dependencySummary(statuses []services.Status) (installed int, running int) {
+	for _, st := range statuses {
+		if st.Installed {
+			installed++
+		}
+		if st.Running {
+			running++
+		}
+	}
+	return
+}
+
+func printDependencySummary(statuses []services.Status) {
+	installed, running := dependencySummary(statuses)
+	total := len(statuses)
+	installedBadge := ui.GreenString("%d/%d", installed, total)
+	runningBadge := ui.YellowString("%d/%d", running, total)
+
+	if total == 0 {
+		fmt.Printf("  %s deps: none declared\n", ui.GrayString("◦"))
+		return
+	}
+
+	if installed == total && running == total {
+		fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("✓"), installedBadge, ui.GreenString("%d/%d", running, total))
+		return
+	}
+
+	if installed == total {
+		fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("⚠"), installedBadge, runningBadge)
+		return
+	}
+
+	fmt.Printf("  %s installed %s, running %s\n", ui.CyanString("⚠"), installedBadge, runningBadge)
+}
+
+func depGlyph(s services.Status) string {
 	switch {
 	case !s.Installed:
-		line = ui.RedString("✗ %s (not installed)", name)
+		return ui.RedString("✗")
 	case s.Running:
-		line = ui.GreenString("✔ %s (running)", name)
+		return ui.GreenString("●")
 	default:
-		line = ui.YellowString("! %s (installed, not running)", name)
+		return ui.YellowString("◐")
 	}
-	fmt.Println(line)
+}
+
+func depStatusLine(name string, s services.Status) string {
+	if !s.Installed {
+		return ui.RedString("%s (not installed)", name)
+	}
+	if s.Running {
+		return ui.GreenString("%s (running)", name)
+	}
+	return ui.YellowString("%s (installed, not running)", name)
+}
+
+func securityLabel(v string) string {
+	switch strings.ToLower(v) {
+	case "enforcing":
+		return ui.GreenString(v)
+	case "disabled":
+		return ui.RedString(v)
+	case "permissive":
+		return ui.YellowString(v)
+	default:
+		return ui.GrayString(v)
+	}
+}
+
+func boolState(v bool) string {
+	if v {
+		return "true"
+	}
+	return "false"
+}
+
+func securityIndicator(_value bool) string {
+	if _value {
+		return ui.GreenString("✔")
+	}
+	return ui.RedString("✗")
+}
+
+func riskProfile(sec security.Report) string {
+	risk := 0
+	if sec.KernelEOL {
+		risk++
+	}
+	if sec.SSHOpen {
+		risk++
+	}
+	if strings.EqualFold(sec.SELinux, "disabled") {
+		risk++
+	}
+
+	if risk == 0 {
+		return ui.GreenString("Green")
+	}
+	if risk == 1 {
+		return ui.YellowString("Moderate")
+	}
+	return ui.RedString("High")
+}
+
+func depState(v bool, positive bool) string {
+	if v == positive {
+		return "+"
+	}
+	return "-"
+}
+
+func printPortMatrix(ports []services.PortStatus) {
+	printSectionHeader("Ports")
+	openCount := 0
+	for _, ps := range ports {
+		if ps.Open {
+			openCount++
+		}
+	}
+	fmt.Printf("  %s %d/%d open\n", ui.GrayString("◉ exposure"), openCount, len(ports))
+	for _, ps := range ports {
+		status := ui.RedString("closed")
+		glyph := ui.RedString("◌")
+		if ps.Open {
+			status = ui.GreenString("open")
+			glyph = ui.GreenString("●")
+		}
+		fmt.Printf("  %s %s:%d → %s\n", glyph, ps.Service, ps.Port, status)
+	}
 }
