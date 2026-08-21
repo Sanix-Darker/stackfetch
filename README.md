@@ -25,6 +25,7 @@ even regarding services or ports opened / closed.
 - **QA matrix:** `stackfetch qa` outputs post-release feature story health in plain and markdown formats.
 - **QA strict/validation:** `stackfetch qa --validate` checks tracker integrity and `stackfetch qa --strict` fails when blocked stories are found.
 - **QA matrix control:** `--status`, `--area`, `--fail-on`, and `--tracker` flags for filtering, custom gating rules, and custom tracker paths.
+- **Discover keys:** `stackfetch keys` lists supported stacks/runtimes, with `--contains` filter and `--sort asc|desc` ordering.
 
 ## HOW TO INSTALL
 
@@ -64,6 +65,10 @@ scoop install stackfetch
 stackfetch                         # system only (BLAZINGLY fast)
 stackfetch node python docker      # add Node, Python, Docker info
 stackfetch mean lamp --json        # JSON report for MEAN & LAMP stacks
+stackfetch keys                   # list all supported keys
+stackfetch keys --contains node    # show keys matching "node"
+stackfetch keys --sort desc        # show keys in descending order
+stackfetch keys --contains go --json # list matching keys as JSON
 stackfetch qa                     # show the current QA matrix
 stackfetch qa --status todo       # show only TODO stories
 stackfetch qa --area core,qa       # show Core and QA areas (case-insensitive)

@@ -3,6 +3,7 @@ package langfetch
 import (
 	"errors"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/sanix-darker/stackfetch/internal/cache"
@@ -50,6 +51,16 @@ func Fetch(lang string) (LangInfo, error) {
 	}
 	msg := ">> Unsupported language/stack !\n\n>> Please create a feature request on https://github.com/sanix-darker/stackfetch to add it): " + lang
 	return LangInfo{}, errors.New(msg)
+}
+
+// Keys returns the list of registered fetch keys in deterministic order.
+func Keys() []string {
+	keys := make([]string, 0, len(registry))
+	for key := range registry {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // Helper to grab first line of command output
